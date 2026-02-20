@@ -1,6 +1,7 @@
 #include "espnow_receiver.h"
 #include "esp_wifi.h"
 #include "esp_now.h"
+#include "esp_netif.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_mac.h"
@@ -18,8 +19,19 @@ static const uint8_t ALLOWED_MAC[] = TRANSMITTER_MAC;
 static QueueHandle_t s_packet_queue;
 
 static void on_data_recv(const esp_now_recv_info_t *recv_info, const uint8_t *data, int len) {
-    if (memcmp(recv_info->src_addr, ALLOWED_MAC, 6) != 0) return;
-    if (len != sizeof(joystick_packet_t)) return;
+    const uint8_t *src = recv_info->src_addr;
+
+    if (memcmp(src, ALLOWED_MAC, 6) != 0) {
+        ESP_LOGW(TAG, "Ignored packet from unknown MAC: %02X:%02X:%02X:%02X:%02X:%02X",
+                 src[0], src[1], src[2], src[3], src[4], src[5]);
+        return;
+    }
+
+    if (len != sizeof(joystick_packet_t)) {
+        ESP_LOGW(TAG, "Ignored packet: wrong size %d (expected %d)",
+                 len, (int)sizeof(joystick_packet_t));
+        return;
+    }
 
     joystick_packet_t packet;
     memcpy(&packet, data, sizeof(joystick_packet_t));
@@ -57,11 +69,19 @@ bool espnow_init(QueueHandle_t packet_queue) {
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    // Print MAC address
+    // Print this device's MAC and the transmitter MAC it will accept
     uint8_t mac[6];
     esp_wifi_get_mac(WIFI_IF_STA, mac);
-    ESP_LOGI(TAG, "MAC Address: %02X:%02X:%02X:%02X:%02X:%02X",
+    ESP_LOGI(TAG, "This device MAC:      %02X:%02X:%02X:%02X:%02X:%02X",
              mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    ESP_LOGI(TAG, "Expecting TX MAC:     %02X:%02X:%02X:%02X:%02X:%02X",
+             ALLOWED_MAC[0], ALLOWED_MAC[1], ALLOWED_MAC[2],
+             ALLOWED_MAC[3], ALLOWED_MAC[4], ALLOWED_MAC[5]);
+
+    uint8_t ch;
+    wifi_second_chan_t second;
+    esp_wifi_get_channel(&ch, &second);
+    ESP_LOGI(TAG, "WiFi channel: %d (TX must use the same)", ch);
 
     // Initialize ESP-NOW
     if (esp_now_init() != ESP_OK) {
