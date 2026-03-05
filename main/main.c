@@ -1,4 +1,7 @@
+#include "wifi_init.h"
 #include "espnow_receiver.h"
+#include "udp_receiver.h"
+#include "input_lock.h"
 #include "joystick_mixer.h"
 #include "motor_control.h"
 #include "driver/gpio.h"
@@ -30,7 +33,6 @@ static void led_task(void *pv) {
             gpio_set_level(LED_PIN, connected ? 1 : 0);
             level = connected;
         } else if (!connected) {
-            // Timeout with no notification — blink
             level = !level;
             gpio_set_level(LED_PIN, level);
         }
@@ -51,16 +53,17 @@ static void control_task(void *pv) {
 
             if (!connected) {
                 connected = true;
-                ESP_LOGI(TAG, "Transmitter connected.");
+                input_source_t src = input_lock_get();
+                ESP_LOGI(TAG, "Connected via %s.",
+                         src == INPUT_ESPNOW ? "ESP-NOW" : "UDP");
                 xTaskNotify(s_led_task_handle, 1, eSetValueWithOverwrite);
             }
         } else {
-            // Safety timeout — no packet received within SAFETY_TIMEOUT_MS
             motor_control_stop();
 
             if (connected) {
                 connected = false;
-                ESP_LOGW(TAG, "Transmitter lost. Waiting for reconnect...");
+                ESP_LOGW(TAG, "Signal lost. Waiting for reconnect...");
                 xTaskNotify(s_led_task_handle, 0, eSetValueWithOverwrite);
             }
         }
@@ -71,19 +74,29 @@ void app_main(void) {
     gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
     gpio_set_level(LED_PIN, 0);
 
-    ESP_LOGI(TAG, "=== ESP32 RC Car (ESP-NOW) ===");
+    ESP_LOGI(TAG, "=== ESP32 RC Car (ESP-NOW + UDP) ===");
 
     motor_control_init();
 
     QueueHandle_t joystick_queue = xQueueCreate(1, sizeof(joystick_packet_t));
+
+    if (!wifi_init()) {
+        ESP_LOGE(TAG, "WiFi init failed! Halting.");
+        while (true) { vTaskDelay(pdMS_TO_TICKS(1000)); }
+    }
 
     if (!espnow_init(joystick_queue)) {
         ESP_LOGE(TAG, "ESP-NOW init failed! Halting.");
         while (true) { vTaskDelay(pdMS_TO_TICKS(1000)); }
     }
 
-    xTaskCreate(led_task,     "led",  1024, NULL,           1, &s_led_task_handle);
+    if (!udp_receiver_init(joystick_queue)) {
+        ESP_LOGE(TAG, "UDP receiver init failed! Halting.");
+        while (true) { vTaskDelay(pdMS_TO_TICKS(1000)); }
+    }
+
+    xTaskCreate(led_task,     "led",  2048, NULL,           1, &s_led_task_handle);
     xTaskCreate(control_task, "ctrl", 4096, joystick_queue, 5, NULL);
 
-    ESP_LOGI(TAG, "Ready. Waiting for joystick input...");
+    ESP_LOGI(TAG, "Ready. Waiting for input (ESP-NOW or UDP)...");
 }

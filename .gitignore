@@ -80,5 +80,5 @@ Desktop.ini
 # VSCode workspace settings (machine-specific paths, serial port)
 .vscode/
 
-# Project secrets (MAC addresses, keys) — copy secrets.h.example to secrets.h and fill in
-main/secrets.h
+# Project secrets are configured via idf.py menuconfig (Kconfig)
+# sdkconfig is already gitignored above

@@ -1,0 +1,38 @@
+menu "RC Car Configuration"
+
+    config RC_TRANSMITTER_MAC
+        string "ESP-NOW transmitter MAC address"
+        default "00:00:00:00:00:00"
+        help
+            MAC address of the paired ESP-NOW transmitter, in colon-separated hex format.
+            Example: "AA:BB:CC:DD:EE:FF". Must be set before flashing.
+
+    config RC_STA_SSID
+        string "WiFi SSID"
+        default ""
+        help
+            SSID of the WiFi network to connect to. Both the ESP32 and the
+            Steam Deck must be on the same network.
+
+    config RC_STA_PASS
+        string "WiFi password"
+        default ""
+        help
+            Password for the WiFi network.
+
+    config RC_UDP_PORT
+        int "UDP port for joystick packets"
+        default 4210
+        range 1024 65535
+        help
+            UDP port the receiver listens on for joystick packets from the Steam Deck.
+
+    config RC_WIFI_CHANNEL
+        int "WiFi channel"
+        default 1
+        range 1 13
+        help
+            WiFi channel for ESP-NOW. The ESP-NOW transmitter must use
+            the same channel.
+
+endmenu
