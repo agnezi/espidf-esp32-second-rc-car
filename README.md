@@ -37,19 +37,19 @@ Motor driver expects an H-bridge IC (e.g. L298N, DRV8833) wired to the IN pins. 
 
 ## Setup
 
-**1. Configure your transmitter MAC**
+**1. Configure the project**
 
 ```sh
-cp main/secrets.h.example main/secrets.h
+idf.py menuconfig
 ```
 
-Edit `main/secrets.h` and replace the placeholder with your transmitter's MAC address:
+Navigate to **RC Car Configuration** and set:
 
-```c
-#define TRANSMITTER_MAC {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
-```
+| Setting | Default | Description |
+|---------|---------|-------------|
+| Transmitter MAC | `00:00:00:00:00:00` | ESP-NOW transmitter MAC (colon-separated hex, must be set before flashing) |
 
-To find the MAC, flash the transmitter and look for a line like:
+To find the transmitter's MAC, flash the transmitter and look for:
 ```
 I ESPNOW: MAC Address: AA:BB:CC:DD:EE:FF
 ```
