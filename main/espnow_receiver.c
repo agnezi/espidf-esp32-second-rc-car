@@ -8,20 +8,29 @@
 #include "nvs_flash.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
-#include "secrets.h"
 #include <string.h>
+#include <stdlib.h>
 
 static const char *TAG = "ESPNOW";
 
-// Allowed transmitter MAC address — set in secrets.h (gitignored)
-static const uint8_t ALLOWED_MAC[] = TRANSMITTER_MAC;
-
+static uint8_t s_allowed_mac[6];
 static QueueHandle_t s_packet_queue;
+
+// Parse "AA:BB:CC:DD:EE:FF" into a 6-byte array. Returns true on success.
+static bool parse_mac(const char *str, uint8_t *out) {
+    unsigned int m[6];
+    if (sscanf(str, "%02x:%02x:%02x:%02x:%02x:%02x",
+               &m[0], &m[1], &m[2], &m[3], &m[4], &m[5]) != 6) {
+        return false;
+    }
+    for (int i = 0; i < 6; i++) out[i] = (uint8_t)m[i];
+    return true;
+}
 
 static void on_data_recv(const esp_now_recv_info_t *recv_info, const uint8_t *data, int len) {
     const uint8_t *src = recv_info->src_addr;
 
-    if (memcmp(src, ALLOWED_MAC, 6) != 0) {
+    if (memcmp(src, s_allowed_mac, 6) != 0) {
         ESP_LOGW(TAG, "Ignored packet from unknown MAC: %02X:%02X:%02X:%02X:%02X:%02X",
                  src[0], src[1], src[2], src[3], src[4], src[5]);
         return;
@@ -47,6 +56,12 @@ static void on_data_recv(const esp_now_recv_info_t *recv_info, const uint8_t *da
 
 bool espnow_init(QueueHandle_t packet_queue) {
     s_packet_queue = packet_queue;
+
+    // Parse transmitter MAC from Kconfig
+    if (!parse_mac(CONFIG_RC_TRANSMITTER_MAC, s_allowed_mac)) {
+        ESP_LOGE(TAG, "Invalid transmitter MAC in config: %s", CONFIG_RC_TRANSMITTER_MAC);
+        return false;
+    }
 
     // Initialize NVS (required by WiFi driver)
     esp_err_t ret = nvs_flash_init();
@@ -75,8 +90,8 @@ bool espnow_init(QueueHandle_t packet_queue) {
     ESP_LOGI(TAG, "This device MAC:      %02X:%02X:%02X:%02X:%02X:%02X",
              mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     ESP_LOGI(TAG, "Expecting TX MAC:     %02X:%02X:%02X:%02X:%02X:%02X",
-             ALLOWED_MAC[0], ALLOWED_MAC[1], ALLOWED_MAC[2],
-             ALLOWED_MAC[3], ALLOWED_MAC[4], ALLOWED_MAC[5]);
+             s_allowed_mac[0], s_allowed_mac[1], s_allowed_mac[2],
+             s_allowed_mac[3], s_allowed_mac[4], s_allowed_mac[5]);
 
     uint8_t ch;
     wifi_second_chan_t second;

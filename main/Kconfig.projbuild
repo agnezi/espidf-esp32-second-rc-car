@@ -1,0 +1,10 @@
+menu "RC Car Configuration"
+
+    config RC_TRANSMITTER_MAC
+        string "ESP-NOW transmitter MAC address"
+        default "00:00:00:00:00:00"
+        help
+            MAC address of the paired ESP-NOW transmitter, in colon-separated hex format.
+            Example: "AA:BB:CC:DD:EE:FF". Must be set before flashing.
+
+endmenu
