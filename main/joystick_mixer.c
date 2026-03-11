@@ -16,7 +16,7 @@ motor_output_t arcade_mix(int16_t throttle, int16_t steering) {
 
     // Apply direction setting and scale to motor range
     int16_t thr = scaleToMotor(throttle * THROTTLE_DIRECTION);
-    int16_t str = scaleToMotor(steering);
+    int16_t str = scaleToMotor(steering * STEERING_DIRECTION);
 
     // Arcade mix
     int16_t left  = thr + str;

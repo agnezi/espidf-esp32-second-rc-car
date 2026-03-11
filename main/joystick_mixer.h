@@ -12,6 +12,9 @@
 // Set to -1 to invert Y-axis if joystick up sends negative values
 #define THROTTLE_DIRECTION 1
 
+// Set to -1 to invert X-axis if joystick left/right are swapped
+#define STEERING_DIRECTION -1
+
 typedef struct {
     int16_t left;   // -255 to +255, negative = reverse
     int16_t right;  // -255 to +255, negative = reverse

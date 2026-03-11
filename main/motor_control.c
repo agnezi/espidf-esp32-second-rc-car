@@ -12,7 +12,7 @@ static const char *TAG = "MOTOR";
 #define MOTOR_B_IN2  19
 
 // PWM configuration
-#define PWM_FREQ       1000
+#define PWM_FREQ       20000
 #define PWM_RESOLUTION LEDC_TIMER_8_BIT
 #define PWM_SPEED_MODE LEDC_LOW_SPEED_MODE
 
