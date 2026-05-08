@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-// Input range from transmitter (12-bit ADC centered at 0 after deadzone)
-#define JOYSTICK_INPUT_MAX 2048
+// Input range from transmitter (-100..100 after ADC scaling and deadzone)
+#define JOYSTICK_INPUT_MAX 100
 
 // PWM max duty cycle (8-bit resolution)
 #define MOTOR_MAX_SPEED 255

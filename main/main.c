@@ -9,7 +9,7 @@
 
 static const char *TAG = "MAIN";
 
-#define SAFETY_TIMEOUT_MS     500
+#define SAFETY_TIMEOUT_MS     1500
 #define LED_PIN               GPIO_NUM_2
 #define LED_BLINK_INTERVAL_MS 300
 
